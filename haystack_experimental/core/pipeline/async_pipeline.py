@@ -19,7 +19,7 @@ from haystack.core.pipeline.base import (
     _dequeue_waiting_component,
     _enqueue_component,
     _enqueue_waiting_component,
-    _is_lazy_variadic,
+    _is_lazy_variadic
 )
 from haystack.telemetry import pipeline_running
 
@@ -64,6 +64,26 @@ class AsyncPipeline(PipelineBase):
             if async_executor is None
             else async_executor
         )
+    
+    def _normalize_varidiac_input_data(self, data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """
+        Variadic inputs expect their value to be a list, this utility method creates that list from the user's input.
+        """
+        for component_name, component_inputs in data.items():
+            if component_name not in self.graph.nodes:
+                # This is not a component name, it must be the name of one or more input sockets.
+                # Those are handled in a different way, so we skip them here.
+                continue
+            instance = self.graph.nodes[component_name]["instance"]
+            for component_input, input_value in component_inputs.items():
+                if instance.__haystack_input__._sockets_dict[component_input].is_variadic:
+                    # Components that have variadic inputs need to receive lists as input.
+                    # We don't want to force the user to always pass lists, so we convert single values to lists here.
+                    # If it's already a list we assume the component takes a variadic input of lists, so we
+                    # convert it in any case.
+                    data[component_name][component_input] = [input_value]
+
+        return {**data}
 
     async def _run_component(
         self,
