@@ -12,6 +12,8 @@ from haystack.dataclasses import ChatMessage
 
 from haystack_experimental.chat_message_stores.types import ChatMessageStore
 
+from haystack.components.retrievers import FilterRetriever
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,19 +21,19 @@ class DistributedChatMessageStore(ChatMessageStore):
     """
     Stores chat messages in-memory.
     """
-
     def __init__(
         self,
         document_store,
-        document_embedder
+        document_embedder,
+        filters: Dict[str, Any] = None
     ):
         """
         Initializes the InMemoryChatMessageStore.
         """
-        self.messages = []
         self.document_store=document_store
         self.document_embedder=document_embedder
         self.document_embedder.warm_up()
+        self.filters = filters
 
 
     @staticmethod
@@ -104,10 +106,17 @@ class DistributedChatMessageStore(ChatMessageStore):
         """
         self.messages = []
 
-    def retrieve(self) -> List[ChatMessage]:
+    def retrieve(self) -> List[Document]:
         """
         Retrieves all stored chat messages.
 
         :returns: A list of chat messages.
+
+        Building in semnatic matching shortly for
+        constrained conversational memory retrieval
         """
-        return self.messages
+     
+        retriever = FilterRetriever(self.document_store)
+        result = retriever.run(filters=self.filters)
+        
+        return result['documents']
