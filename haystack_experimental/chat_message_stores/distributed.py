@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import time
 from haystack import Document
 
 from typing import Any, Dict, Iterable, List
@@ -21,13 +22,17 @@ class DistributedChatMessageStore(ChatMessageStore):
 
     def __init__(
         self,
-        document_store=None
+        document_store,
+        document_embedder
     ):
         """
         Initializes the InMemoryChatMessageStore.
         """
         self.messages = []
         self.document_store=document_store
+        self.document_embedder=document_embedder
+        self.document_embedder.warm_up()
+
 
     @staticmethod
     def to_document(chat_message: ChatMessage) -> Document:
@@ -41,7 +46,7 @@ class DistributedChatMessageStore(ChatMessageStore):
         """
         return Document(
             content=chat_message.content,
-            meta=chat_message.meta,
+            meta={"role": chat_message.role,  "timestamp": str(time.time())},
         )
 
 
@@ -88,10 +93,10 @@ class DistributedChatMessageStore(ChatMessageStore):
         if not isinstance(messages, Iterable) or any(not isinstance(message, ChatMessage) for message in messages):
             raise ValueError("Please provide a list of ChatMessages.")
         
-        print([self.to_document(message) for message in messages])
+        documents = [self.to_document(message) for message in messages]
+        self.document_store.write_documents(self.document_embedder.run(documents)['documents'])
 
-        self.messages.extend(messages)
-        return len(messages)
+        return len(documents)
 
     def delete_messages(self) -> None:
         """
