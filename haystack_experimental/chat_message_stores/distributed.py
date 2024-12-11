@@ -106,7 +106,11 @@ class DistributedChatMessageStore(ChatMessageStore):
         """
         self.messages = []
 
+<<<<<<< HEAD
     def retrieve(self, filters: Optional[Dict[str, Any]] = None) -> List[Document]:
+=======
+    def retrieve(self) -> List[Document]:
+>>>>>>> 48fde0e (adjusting filter attributes)
         """
         Retrieves all stored chat messages.
 
@@ -115,9 +119,12 @@ class DistributedChatMessageStore(ChatMessageStore):
         Building in semnatic matching shortly for
         constrained conversational memory retrieval
         """
+<<<<<<< HEAD
 
         if filters:
             self.filters = filters
+=======
+>>>>>>> 48fde0e (adjusting filter attributes)
      
         retriever = FilterRetriever(self.document_store)
         result = retriever.run(filters=self.filters)
