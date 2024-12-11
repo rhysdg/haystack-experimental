@@ -107,7 +107,11 @@ class DistributedChatMessageStore(ChatMessageStore):
         self.messages = []
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     def retrieve(self, filters: Optional[Dict[str, Any]] = None) -> List[Document]:
+=======
+    def retrieve(self) -> List[Document]:
+>>>>>>> 48fde0e (adjusting filter attributes)
 =======
     def retrieve(self) -> List[Document]:
 >>>>>>> 48fde0e (adjusting filter attributes)
@@ -120,9 +124,12 @@ class DistributedChatMessageStore(ChatMessageStore):
         constrained conversational memory retrieval
         """
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         if filters:
             self.filters = filters
+=======
+>>>>>>> 48fde0e (adjusting filter attributes)
 =======
 >>>>>>> 48fde0e (adjusting filter attributes)
      
