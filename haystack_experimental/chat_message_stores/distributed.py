@@ -98,7 +98,7 @@ class DistributedChatMessageStore(ChatMessageStore):
             raise ValueError("Please provide a list of ChatMessages.")
         
         if self.filters:
-            user_id = next((item for item in self.filters['conditions'] if item['field'] == "user"), None)['value']
+            user_id = next((item for item in self.filters['conditions'] if item['field'] == "meta.user"), None)['value']
         
         documents = [self.to_document(message, user_id=user_id) for message in messages]
         self.document_store.write_documents(self.document_embedder.run(documents)['documents'])
