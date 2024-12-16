@@ -79,7 +79,7 @@ class ChatMessageWriter:
         return default_from_dict(cls, data)
 
     @component.output_types(messages_written=int)
-    def run(self, messages: List[ChatMessage]):
+    def run(self, messages: List[ChatMessage], filters: Optional[dict] = {}):
         """
         Run the ChatMessageWriter on the given input data.
 
@@ -91,6 +91,12 @@ class ChatMessageWriter:
         :raises ValueError:
             If the specified message store is not found.
         """
+
+        if not isinstance(filters, dict):
+            raise ValueError("Please pass a valid dictonary filter")
+
+        if filters:
+            self.message_store.filters = filters
 
         messages_written = self.message_store.write_messages(messages=messages)
         return {"messages_written": messages_written}
