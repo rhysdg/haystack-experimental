@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import time
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
 from haystack import default_from_dict, default_to_dict, logging, component, Document
 from haystack.dataclasses import ChatMessage
