@@ -35,7 +35,7 @@ class DistributedChatMessageStore(ChatMessageStore):
 
 
     @staticmethod
-    def to_document(chat_message: ChatMessage) -> Document:
+    def to_document(chat_message: ChatMessage, user_id: Optional[str] = None) -> Document:
         """
         Converts a ChatMessage to a Document.
 
@@ -44,9 +44,13 @@ class DistributedChatMessageStore(ChatMessageStore):
         :returns:
             The Document.
         """
+        metadata = {"role": chat_message.role,  "timestamp": str(time.time())}
+        if user_id is not none:
+            metdata["user_id"] = user_id
+            
         return Document(
             content=chat_message.content,
-            meta={"role": chat_message.role,  "timestamp": str(time.time())},
+            meta=metadata
         )
 
 
@@ -93,7 +97,10 @@ class DistributedChatMessageStore(ChatMessageStore):
         if not isinstance(messages, Iterable) or any(not isinstance(message, ChatMessage) for message in messages):
             raise ValueError("Please provide a list of ChatMessages.")
         
-        documents = [self.to_document(message) for message in messages]
+        if self.filters:
+            user_id = next((item for item in self.filters['conditions'] if item['field'] == "user"), None)['value']
+        
+        documents = [self.to_document(message, user_id=user_id) for message in messages]
         self.document_store.write_documents(self.document_embedder.run(documents)['documents'])
 
         return len(documents)
