@@ -46,7 +46,7 @@ class DistributedChatMessageStore(ChatMessageStore):
         """
         metadata = {"role": chat_message.role,  "timestamp": str(time.time())}
         if user_id is not None:
-            metdata["user_id"] = user_id
+            metadata["user_id"] = user_id
             
         return Document(
             content=chat_message.content,
