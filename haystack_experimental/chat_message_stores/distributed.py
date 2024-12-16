@@ -14,7 +14,7 @@ from haystack.components.retrievers import FilterRetriever
 
 logger = logging.getLogger(__name__)
 
-@component
+
 class DistributedChatMessageStore(ChatMessageStore):
     """
     Stores chat messages in-memory.
