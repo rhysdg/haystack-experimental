@@ -3,11 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import time
-from haystack import Document
-
 from typing import Any, Dict, Iterable, List
 
-from haystack import default_from_dict, default_to_dict, logging
+from haystack import default_from_dict, default_to_dict, logging, component, Document
 from haystack.dataclasses import ChatMessage
 
 from haystack_experimental.chat_message_stores.types import ChatMessageStore
@@ -16,7 +14,7 @@ from haystack.components.retrievers import FilterRetriever
 
 logger = logging.getLogger(__name__)
 
-
+@component
 class DistributedChatMessageStore(ChatMessageStore):
     """
     Stores chat messages in-memory.
