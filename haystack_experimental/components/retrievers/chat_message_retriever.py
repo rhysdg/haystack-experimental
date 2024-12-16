@@ -89,7 +89,7 @@ class ChatMessageRetriever:
         return default_from_dict(cls, data)
 
     @component.output_types(messages=List[ChatMessage])
-    def run(self, last_k: Optional[int] = None):
+    def run(self, last_k: Optional[int] = None, filters: Optional[dict] = {}):
         """
         Run the ChatMessageRetriever
 
@@ -103,6 +103,12 @@ class ChatMessageRetriever:
         if last_k is not None and last_k <= 0:
             raise ValueError("last_k must be greater than 0")
 
-        last_k = last_k or self.last_k
+        if not isinstance(filters, dict):
+            raise ValueError("Please pass a dictonary filter")
+        
 
+        last_k = last_k or self.last_k
+        if filters:
+            self.message_store.filters = filters
+        
         return {"messages": self.message_store.retrieve()[-last_k:]}
