@@ -44,7 +44,7 @@ class DistributedChatMessageStore(ChatMessageStore):
         :returns:
             The Document.
         """
-        metadata = {"role": chat_message.role,  "timestamp": str(time.time())}
+        metadata = {"role": chat_message.role,  "timestamp": int(time.time())}
         if user_id is not None:
             metadata["user_id"] = user_id
             
