@@ -5,7 +5,7 @@
 import time
 from haystack import Document
 
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, Iterable, List, Optional
 
 from haystack import default_from_dict, default_to_dict, logging
 from haystack.dataclasses import ChatMessage
@@ -106,7 +106,7 @@ class DistributedChatMessageStore(ChatMessageStore):
         """
         self.messages = []
 
-    def retrieve(self) -> List[Document]:
+    def retrieve(self, filters: Optional[Dict[str, Any]] = None) -> List[Document]:
         """
         Retrieves all stored chat messages.
 
@@ -115,6 +115,9 @@ class DistributedChatMessageStore(ChatMessageStore):
         Building in semnatic matching shortly for
         constrained conversational memory retrieval
         """
+
+        if filters:
+            self.filters = filters
      
         retriever = FilterRetriever(self.document_store)
         result = retriever.run(filters=self.filters)
