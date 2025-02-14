@@ -1,70 +1,30 @@
-# SPDX-FileCopyrightText: 2022-present deepset GmbH <info@deepset.ai>
-#
-# SPDX-License-Identifier: Apache-2.0
-from pathlib import Path
-import pytest
+import asyncio
 
-from haystack import component
-from haystack.testing.sample_components import AddFixedValue
-from haystack_experimental.core import AsyncPipeline, run_async_pipeline
+from haystack_experimental import AsyncPipeline
 
 
-@component
-class AsyncDoubleWithOriginal:
-    """
-    Doubles the input value and returns the original value as well.
-    """
+def test_async_pipeline_reentrance(waiting_component, spying_tracer):
+    pp = AsyncPipeline()
+    pp.add_component("wait", waiting_component())
 
-    def __init__(self) -> None:
-        self.async_executed = False
-
-    @component.output_types(value=int, original=int)
-    def run(self, value: int):
-        raise NotImplementedError()
-
-    @component.output_types(value=int, original=int)
-    async def run_async(self, value: int):
-        self.async_executed = True
-        return {"value": value * 2, "original": value}
-
-
-@pytest.mark.asyncio
-async def test_async_pipeline():
-    pipeline = AsyncPipeline()
-    pipeline.add_component("first_addition", AddFixedValue(add=2))
-    pipeline.add_component("second_addition", AddFixedValue())
-    pipeline.add_component("double", AsyncDoubleWithOriginal())
-    pipeline.connect("first_addition", "double")
-    pipeline.connect("double.value", "second_addition")
-
-    outputs = {}
-    # since enumerate doesn't work with async generators
-    expected_intermediate_outputs = [
-        {"first_addition": {"result": 5}},
-        {"double": {"value": 10, "original": 5}},
-        {"second_addition": {"result": 11}},
+    run_data = [
+        {"wait_for": 1},
+        {"wait_for": 2},
     ]
 
-    outputs = [o async for o in pipeline.run({"first_addition": {"value": 3}})]
-    intermediate_outputs = outputs[:-1]
-    final_output = outputs[-1]
+    async_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(async_loop)
 
-    assert expected_intermediate_outputs == intermediate_outputs
-    assert final_output == {
-        "double": {"original": 5},
-        "second_addition": {"result": 11},
-    }
-    assert pipeline.get_component("double").async_executed is True
-    pipeline.get_component("double").async_executed = False
+    async def run_all():
+        # Create concurrent tasks for each pipeline run
+        tasks = [pp.run_async(data) for data in run_data]
+        await asyncio.gather(*tasks)
 
-    other_final_outputs = await run_async_pipeline(
-        pipeline,
-        {"first_addition": {"value": 3}},
-        include_outputs_from={"double", "second_addition", "first_addition"},
-    )
-    assert other_final_outputs == {
-        "first_addition": {"result": 5},
-        "double": {"value": 10, "original": 5},
-        "second_addition": {"result": 11},
-    }
-    assert pipeline.get_component("double").async_executed is True
+    try:
+        async_loop.run_until_complete(run_all())
+        component_spans = [sp for sp in spying_tracer.spans if sp.operation_name == "haystack.component.run_async"]
+        for span in component_spans:
+            assert span.tags["haystack.component.visits"] == 1
+    finally:
+        async_loop.close()
+

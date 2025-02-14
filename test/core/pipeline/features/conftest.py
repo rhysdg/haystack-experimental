@@ -7,72 +7,18 @@ import asyncio
 import pytest
 from pytest_bdd import when, then, parsers
 
-from haystack_experimental.core import AsyncPipeline, run_async_pipeline
-import contextlib
-import dataclasses
-import uuid
-from typing import Dict, Any, Optional, List, Iterator
-
-from haystack.tracing import Span, Tracer, enable_tracing, disable_tracing
-
+from haystack_experimental import Pipeline, AsyncPipeline
+from typing import Dict, Any, List
 
 PIPELINE_NAME_REGEX = re.compile(r"\[(.*)\]")
 
-
-@dataclasses.dataclass
-class SpyingSpan(Span):
-    operation_name: str
-    parent_span: Optional[Span] = None
-    tags: Dict[str, Any] = dataclasses.field(default_factory=dict)
-
-    trace_id: Optional[str] = dataclasses.field(
-        default_factory=lambda: str(uuid.uuid4())
-    )
-    span_id: Optional[str] = dataclasses.field(
-        default_factory=lambda: str(uuid.uuid4())
-    )
-
-    def set_tag(self, key: str, value: Any) -> None:
-        self.tags[key] = value
-
-    def get_correlation_data_for_logs(self) -> Dict[str, Any]:
-        return {"trace_id": self.trace_id, "span_id": self.span_id}
-
-
-class SpyingTracer(Tracer):
-    def current_span(self) -> Optional[Span]:
-        return self.spans[-1] if self.spans else None
-
-    def __init__(self) -> None:
-        self.spans: List[SpyingSpan] = []
-
-    @contextlib.contextmanager
-    def trace(
-        self,
-        operation_name: str,
-        tags: Optional[Dict[str, Any]] = None,
-        parent_span: Optional[Span] = None,
-    ) -> Iterator[Span]:
-        new_span = SpyingSpan(operation_name, parent_span)
-
-        for key, value in (tags or {}).items():
-            new_span.set_tag(key, value)
-
-        self.spans.append(new_span)
-
-        yield new_span
-
-
-@pytest.fixture()
-def spying_tracer() -> Generator[SpyingTracer, None, None]:
-    tracer = SpyingTracer()
-    enable_tracing(tracer)
-
-    yield tracer
-
-    # Make sure to disable tracing after the test to avoid affecting other tests
-    disable_tracing()
-
+@pytest.fixture(params=[AsyncPipeline, Pipeline])
+def pipeline_class(request):
+    """
+    A parametrized fixture that will yield AsyncPipeline for one test run
+    and Pipeline for the next test run.
+    """
+    return request.param
 
 @dataclass
 class PipelineRunData:
@@ -98,7 +44,15 @@ class _PipelineResult:
 
 @when("I run the Pipeline", target_fixture="pipeline_result")
 def run_pipeline(
-    pipeline_data: Tuple[AsyncPipeline, List[PipelineRunData]], spying_tracer
+    pipeline_data: Tuple[Union[AsyncPipeline, Pipeline], List[PipelineRunData]], spying_tracer
+) -> Union[List[Tuple[_PipelineResult, PipelineRunData]], Exception]:
+    if isinstance(pipeline_data[0], AsyncPipeline):
+        return run_async_pipeline(pipeline_data, spying_tracer)
+    else:
+        return run_sync_pipeline(pipeline_data, spying_tracer)
+
+def run_async_pipeline(
+    pipeline_data: Tuple[Union[AsyncPipeline], List[PipelineRunData]], spying_tracer
 ) -> Union[List[Tuple[_PipelineResult, PipelineRunData]], Exception]:
     """
     Attempts to run a pipeline with the given inputs.
@@ -114,7 +68,7 @@ def run_pipeline(
     results: List[_PipelineResult] = []
 
     async def run_inner(data, include_outputs_from):
-        return await run_async_pipeline(pipeline, data.inputs, include_outputs_from)
+        return await pipeline.run_async(data=data.inputs, include_outputs_from=include_outputs_from)
 
     for data in pipeline_run_data:
         try:
@@ -137,6 +91,36 @@ def run_pipeline(
             async_loop.close()
     return [e for e in zip(results, pipeline_run_data)]
 
+def run_sync_pipeline(
+    pipeline_data: Tuple[Pipeline, List[PipelineRunData]], spying_tracer
+) -> Union[List[Tuple[_PipelineResult, PipelineRunData]], Exception]:
+    """
+    Attempts to run a pipeline with the given inputs.
+    `pipeline_data` is a tuple that must contain:
+    * A Pipeline instance
+    * The data to run the pipeline with
+
+    If successful returns a tuple of the run outputs and the expected outputs.
+    In case an exceptions is raised returns that.
+    """
+    pipeline, pipeline_run_data = pipeline_data[0], pipeline_data[1]
+
+    results: List[_PipelineResult] = []
+
+    for data in pipeline_run_data:
+        try:
+            outputs = pipeline.run(data=data.inputs, include_outputs_from=data.include_outputs_from)
+
+            run_order = [
+                span.tags["haystack.component.name"]
+                for span in spying_tracer.spans
+                if "haystack.component.name" in span.tags
+            ]
+            results.append(_PipelineResult(outputs=outputs, run_order=run_order))
+            spying_tracer.spans.clear()
+        except Exception as e:
+            return e
+    return [e for e in zip(results, pipeline_run_data)]
 
 @then("draw it to file")
 def draw_pipeline(pipeline_data: Tuple[AsyncPipeline, List[PipelineRunData]], request):
