@@ -48,7 +48,7 @@ class DistributedChatMessageStore(ChatMessageStore):
         """
         return Document(
             content=chat_message.text,
-            meta={**chat_message.meta,  **{"role": chat_message.role,  "timestamp": str(time.time())}},
+            meta={**chat_message.meta,  **{"role": chat_message.role,  "timestamp": int(time.time())}},
         )
 
 
