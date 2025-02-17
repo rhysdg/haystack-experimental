@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import json
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -346,6 +347,7 @@ class ChatMessage:
         Convert a ChatMessage to the dictionary format expected by OpenAI's Chat API.
         """
         text_contents = self.texts
+        media_contents = self.media
         tool_calls = self.tool_calls
         tool_call_results = self.tool_call_results
 
@@ -357,6 +359,8 @@ class ChatMessage:
             raise ValueError("A `ChatMessage` can only contain one `TextContent` or one `ToolCallResult`.")
 
         openai_msg: Dict[str, Any] = {"role": self._role.value}
+        openai_msg["content"] = []
+
 
         if tool_call_results:
             result = tool_call_results[0]
@@ -368,7 +372,20 @@ class ChatMessage:
             return openai_msg
 
         if text_contents:
-            openai_msg["content"] = text_contents[0]
+            for t in text_contents:
+                openai_msg["content"].append({"type": "text",
+                                            "text": t
+                                        }
+                                )    
+        if media_contents:
+
+            for m in media_contents:
+                openai_msg["content"].append({"type": "image_url",
+                                            "image_url": {"url": f"data:image/jpeg;base64,{m}"
+                                            }
+                                        }
+                                    )
+
         if tool_calls:
             openai_tool_calls = []
             for tc in tool_calls:
@@ -383,6 +400,7 @@ class ChatMessage:
                     }
                 )
             openai_msg["tool_calls"] = openai_tool_calls
+
         return openai_msg
 
     @staticmethod
