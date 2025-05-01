@@ -5,6 +5,7 @@
 import json
 import os
 from typing import Any, Dict, List, Optional, Union
+from dataclasses import asdict, dataclass, field
 
 from haystack import component, default_from_dict, default_to_dict, logging
 from haystack.dataclasses import ChatMessage, StreamingChunk, ToolCall
