@@ -55,6 +55,16 @@ def _convert_message_to_openai_format(message: ChatMessage) -> Dict[str, Any]:
 
     if text_contents:
         openai_msg["content"] = text_contents[0]
+
+    if media_contents:
+
+            for m in media_contents:
+                openai_msg["content"].append({"type": "image_url",
+                                            "image_url": {"url": f"data:image/jpeg;base64,{m}"
+                                            }
+                                        }
+                                    )
+                
     if tool_calls:
         openai_tool_calls = []
         for tc in tool_calls:
