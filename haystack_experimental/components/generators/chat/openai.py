@@ -7,8 +7,11 @@ import os
 from typing import Any, Dict, List, Optional, Union
 from dataclasses import asdict, dataclass, field
 
+from haystack_experimental.dataclasses import ChatMessage
+from haystack_experimental.dataclasses import ByteStream
+
 from haystack import component, default_from_dict, default_to_dict, logging
-from haystack.dataclasses import ChatMessage, StreamingChunk, ToolCall
+from haystack.dataclasses import StreamingChunk, ToolCall
 from haystack.tools import Tool, deserialize_tools_inplace
 from haystack.utils import (
     Secret,
