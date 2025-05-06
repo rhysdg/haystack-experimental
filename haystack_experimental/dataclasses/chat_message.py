@@ -225,6 +225,7 @@ class ChatMessage:
         text: str,
         name: Optional[str] = None,
         meta: Optional[Dict[str, Any]] = None,
+        media: Optional[Sequence[ByteStream]] = None,
     ) -> "ChatMessage":
         """
         Create a message from the system.
@@ -243,6 +244,7 @@ class ChatMessage:
         tool_calls: Optional[List[ToolCall]] = None,
         name: Optional[str] = None,
         meta: Optional[Dict[str, Any]] = None,
+        media: Optional[Sequence[ByteStream]] = None,
     ) -> "ChatMessage":
         """
         Create a message from the assistant.
@@ -268,6 +270,7 @@ class ChatMessage:
         origin: ToolCall,
         error: bool = False,
         meta: Optional[Dict[str, Any]] = None,
+        media: Optional[Sequence[ByteStream]] = None,
     ) -> "ChatMessage":
         """
         Create a message from a Tool.
