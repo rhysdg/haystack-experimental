@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+import haystack
 from haystack_experimental.dataclasses import ByteStream
 
 
@@ -160,7 +161,7 @@ class ChatMessage:
         """
         Returns the list of all Tool calls contained in the message.
         """
-        return [content for content in self._content if isinstance(content, ToolCall)]
+        return [content for content in self._content if isinstance(content, haystack.dataclasses.chat_message.ToolCall)]
 
     @property
     def tool_call(self) -> Optional[ToolCall]:
