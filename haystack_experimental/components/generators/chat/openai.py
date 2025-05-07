@@ -53,7 +53,10 @@ def _convert_message_to_openai_format(message: ChatMessage) -> Dict[str, Any]:
     text_contents = message.texts
     tool_calls = message.tool_calls
     tool_call_results = message.tool_call_results
-    media_contents = [MediaContent(media=media) for media in message.media] if message.media else []
+    if hasattr(message, 'media'):
+        media_contents = [MediaContent(media=media) for media in message.media] if message.media else []
+    else:
+        media_content = []
        
 
     if not text_contents and not tool_calls and not tool_call_results:
