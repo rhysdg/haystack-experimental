@@ -329,7 +329,7 @@ class OpenAIChatGenerator:
         """
         # validate and select the streaming callback
         streaming_callback = select_streaming_callback(
-            self.streaming_callback, streaming_callback, requires_async=False
+            self.streaming_callback, streaming_callback, requires_async=True
         )  # type: ignore
 
         if len(messages) == 0:
